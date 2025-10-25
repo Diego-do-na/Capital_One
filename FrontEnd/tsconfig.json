@@ -1,8 +1,10 @@
 {
     "include": [
-        "./src/**/*"
+        "src",
+        "public"
     ],
     "compilerOptions": {
+        "allowJs": true,
         "strict": true,
         "esModuleInterop": true,
         "lib": [
