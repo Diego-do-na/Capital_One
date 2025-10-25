@@ -1,0 +1,228 @@
+.App {
+  font-family: sans-serif;
+  text-align: center;
+}
+
+.main-content-centered {
+  /* Esto es el truco para centrar: */
+  display: flex; /* Activa Flexbox */
+  flex-direction: column; /* Pone a los hijos en columna (uno arriba del otro) */
+  align-items: center; /* ¡Esta es la que centra horizontalmente! */
+
+  /* Opcional: para que ocupe espacio y se vea bien */
+  justify-content: center; /* Centra verticalmente */
+  text-align: center; /* Centra el texto dentro de <p> y <h1> */
+  padding-top: 50px;
+}
+
+/* --- Estilos Globales --- */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  margin: 0;
+  background-color: #f4f7f6;
+}
+
+/* --- Componente Header.jsx --- */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #ffffff;
+  border-bottom: 1px solid #ddd;
+}
+
+/* --- Componente MirrorsModule.jsx --- */
+.main-content-centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding-top: 50px;
+}
+
+.boton-grande-principal {
+  background-color: #007bff;
+  color: white;
+  font-size: 1.2rem;
+  font-weight: bold;
+  padding: 15px 30px;
+  border: none;
+  border-radius: 50px; /* Bordes redondos */
+  cursor: pointer;
+  margin-top: 20px;
+  transition: transform 0.2s ease;
+}
+
+.boton-grande-principal:hover {
+  transform: scale(1.05); /* Efecto al pasar el mouse */
+}
+
+/* --- Componente SideMenu.jsx --- */
+.sidemenu-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+.sidemenu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100%;
+  background: white;
+  z-index: 20;
+  padding: 20px;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Componente AddGastoModal.jsx --- */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+}
+
+.modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 400px;
+  position: relative; /* Para el botón de cerrar */
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.monto-input-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.monto-input-wrapper span {
+  padding: 0 10px;
+  background-color: #f4f4f4;
+}
+
+.monto-input-wrapper input,
+.form-group select {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.boton-guardar {
+  width: 100%;
+  background-color: #28a745;
+  color: white;
+  padding: 15px;
+  font-size: 1rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.animation-container {
+  text-align: center;
+  padding: 2rem 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* --- ESTILOS PARA LAS NUEVAS ANIMACIONES --- */
+
+/* 1. El Círculo Giratorio (Verificando...) */
+.loader {
+  border: 8px solid #f3f3f3; /* Círculo gris claro */
+  border-top: 8px solid #007bff; /* Círculo azul (el que gira) */
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  animation: spin 1s linear infinite; /* La animación */
+}
+
+/* 2. La Animación de Éxito (¡Duplicado!) */
+.success-animation {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 4px solid #28a745; /* Borde verde */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Animación para que aparezca "saltando" */
+  animation: pop-in 0.3s ease-out;
+}
+
+/* 3. La Palomita (Checkmark) dentro del círculo verde */
+.checkmark {
+  width: 25px;
+  height: 45px;
+  /* Dibuja la palomita usando bordes */
+  border: solid #28a745; /* Verde */
+  border-width: 0 6px 6px 0;
+  /* La rotamos para que parezca palomita */
+  transform: rotate(45deg);
+}
+
+/* --- KEYFRAMES (La lógica de la animación) --- */
+
+/* Animación para girar el .loader */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animación para que "salte" el círculo de éxito */
+@keyframes pop-in {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
