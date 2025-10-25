@@ -1,4 +1,4 @@
-import { getDB } from '../config/db.js';
+import { getDB } from '../../config/db.js';
 
 // ==================== COLLECTION GETTERS ====================
 export const usersCollection = () => getDB().collection('users');
