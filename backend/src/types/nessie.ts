@@ -37,7 +37,8 @@ export interface Account {
 export interface SavingsProcessResult {
     message: string;
     transferredAmount: string | number;
-    purchasesCount: number;
+    // ⬅️ ¡CORREGIDO! Hacemos 'purchasesCount' opcional para el modo espejo (mirror).
+    purchasesCount?: number;
     transferId?: string;
-    validation?: 'SUCCESS' | 'FAILED_BALANCE' | 'SKIP'; // AÑADIDO para el nuevo algoritmo
+    validation?: 'SUCCESS' | 'FAILED_BALANCE' | 'SKIP';
 }

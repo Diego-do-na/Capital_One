@@ -1,21 +1,42 @@
-// tsconfig.json
-
 {
   "compilerOptions": {
-    // Especifica el módulo de salida (Node.js moderno usa ESNext o NodeNext)
+    /* Opciones de Tipado y Módulos */
+
+    // Especifica el sistema de módulos de salida para Node.js moderno.
     "module": "NodeNext",
-    // Especifica la sintaxis de destino (para usar async/await, etc.)
-    "target": "ES2022",
-    // Asegura que TypeScript entienda los imports de Node.js
+
+    // Especifica cómo TypeScript debe resolver los módulos (necesario para "NodeNext").
     "moduleResolution": "NodeNext",
-    // Habilita la sintaxis import/export en TypeScript (requerido por TS4148)
-    "verbatimModuleSyntax": true,
-    // ... otras opciones importantes ...
+
+    // ⬅️ CLAVE: Habilita la sintaxis de importación moderna para módulos CommonJS (como Express y Dotenv), resolviendo TS1259.
     "esModuleInterop": true,
-    "strict": true,
-    "skipLibCheck": true,
+
+    // Asegura que las importaciones y exportaciones sean sintácticamente correctas (ayuda con TS4148/TS1192).
+    "verbatimModuleSyntax": true,
+
+    /* Opciones Básicas */
+
+    // Especifica el nivel de lenguaje de destino para la salida JS (soporta async/await).
+    "target": "ES2022",
+
+    // Directorio de salida para los archivos JavaScript compilados.
     "outDir": "./dist",
-    "rootDir": "./src"
+
+    // Directorio raíz que contiene los archivos fuente de TypeScript.
+    "rootDir": "./src",
+
+    // Habilita todas las comprobaciones de tipado estricto.
+    "strict": true,
+
+    // Asegura que los tipos importados no causen problemas (buena práctica).
+    "skipLibCheck": true,
+
+    /* Configuración Adicional */
+
+    // Habilita la detección de imports en archivos sin declaración 'module'.
+    "forceConsistentCasingInFileNames": true
   },
+
+  // Especifica qué archivos deben ser incluidos por TypeScript.
   "include": ["src/**/*"]
 }
