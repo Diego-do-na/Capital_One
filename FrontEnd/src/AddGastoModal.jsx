@@ -15,7 +15,7 @@ export function AddGastoModal({ status, onClose, onGastoGuardado }) {
     // --- ¡ACTUALIZADO! Validamos los 3 campos ---
     if (!monto || !categoria || !establecimiento || monto <= 0) {
       alert(
-        "Por favor, completa todos los campos (monto, categoría y establecimiento)."
+        "*Please fill required spaces"
       );
       return;
     }
@@ -32,7 +32,7 @@ export function AddGastoModal({ status, onClose, onGastoGuardado }) {
         return (
           <div className="animation-container">
             <div className="loader"></div>
-            <p style={{ marginTop: "15px" }}>Verificando...</p>
+            <p style={{ marginTop: "15px" }}>Verifying...</p>
           </div>
         );
       case "success":
@@ -41,14 +41,14 @@ export function AddGastoModal({ status, onClose, onGastoGuardado }) {
             <div className="success-animation">
               <div className="checkmark"></div>
             </div>
-            <p style={{ marginTop: "15px" }}>¡Ahorro duplicado!</p>
+            <p style={{ marginTop: "15px" }}>¡Savings Mirrored!</p>
           </div>
         );
       case "error":
         return (
           <div className="animation-container">
             {/* Puedes crear una ".error-animation" si quieres */}
-            <p>Oops, algo salió mal.</p>
+            <p>Oops, something went wrong...</p>
           </div>
         );
 
@@ -59,11 +59,11 @@ export function AddGastoModal({ status, onClose, onGastoGuardado }) {
             <button onClick={onClose} className="modal-close-btn">
               X
             </button>
-            <h3>Registrar Gasto Hormiga</h3>
+            <h3>Log Ant Expense</h3>
 
             {/* Campo Monto (sin cambios) */}
             <div className="form-group">
-              <label htmlFor="monto">Monto gastado:</label>
+              <label htmlFor="monto">Amount Spent:</label>
               <div className="monto-input-wrapper">
                 <span>$</span>
                 <input
@@ -78,7 +78,7 @@ export function AddGastoModal({ status, onClose, onGastoGuardado }) {
 
             {/* --- ¡NUEVO! Campo de Establecimiento --- */}
             <div className="form-group">
-              <label htmlFor="establecimiento">Establecimiento:</label>
+              <label htmlFor="establecimiento">Establishment:</label>
               <input
                 style={{
                   width: "100%",
@@ -99,23 +99,23 @@ export function AddGastoModal({ status, onClose, onGastoGuardado }) {
 
             {/* Campo Categoría (sin cambios) */}
             <div className="form-group">
-              <label htmlFor="categoria">Categoría:</label>
+              <label htmlFor="categoria">Category:</label>
               <select
                 id="categoria"
                 value={categoria}
                 onChange={(e) => setCategoria(e.target.value)}
               >
-                <option value="">-- Selecciona una --</option>
-                <option value="cafe">☕ Café</option>
-                <option value="comida_rapida">🍔 Comida rápida</option>
-                <option value="transporte">🚕 Transporte (App)</option>
-                <option value="antojo">🍫 Antojo (OXXO)</option>
-                <option value="otro">🛒 Otro</option>
+                <option value="">-- Select an Option --</option>
+                <option value="coffee">☕ Coffee</option>
+                <option value="fast food">🍔 FastFood</option>
+                <option value="transportation">🚕 Transportation</option>
+                <option value="quick snack">🍫 Snack</option>
+                <option value="other">🛒 Other</option>
               </select>
             </div>
 
             <button type="submit" className="boton-guardar">
-              Guardar Gasto
+              SAVE
             </button>
           </form>
         );

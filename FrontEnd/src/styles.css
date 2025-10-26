@@ -67,20 +67,20 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.2);
   z-index: 10;
+  color: #ddd;
 }
 
 .sidemenu {
-  position: fixed;
+  position: relative;
   top: 0;
   left: 0;
   width: 280px;
   height: 100%;
-  background: white;
+  background: #0f274b;
   z-index: 20;
   padding: 20px;
-  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
 }
 
 /* --- Componente AddGastoModal.jsx --- */
@@ -225,4 +225,11 @@ body {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+
+
+.accounts {
+  position: relative;
+  right: 3px;
 }

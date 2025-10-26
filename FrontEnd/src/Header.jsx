@@ -5,9 +5,8 @@ export function Header({ onMenuClick, isMirrorsOn, onToggleChange }) {
   return (
     <header className="app-header">
       <button onClick={onMenuClick}>☰</button>
-      <h2>Mirrors</h2>
       <label>
-        Activo:
+        Function Active:
         <input
           type="checkbox"
           checked={isMirrorsOn}

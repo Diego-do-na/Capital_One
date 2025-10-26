@@ -10,9 +10,11 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@types/cors": "^2.8.19",
     "@types/mongoose": "^5.11.97",
     "axios": "^1.6.8",
     "cors": "^2.8.5",
+<<<<<<< HEAD
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "mongoose": "^8.19.2"
@@ -21,6 +23,15 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^4.17.21",
     "@types/node": "^20.12.7",
+=======
+    "dotenv": "^16.6.1",
+    "express": "^4.21.2",
+    "mongoose": "^8.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.24",
+    "@types/node": "^20.19.23",
+>>>>>>> a8e6c19a0ab32ecd6ffcbf6e3ac7447da95cd7ef
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.4.5"
   }

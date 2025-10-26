@@ -1,16 +1,25 @@
 {
-    "include": [
-        "src",
-        "public"
-    ],
     "compilerOptions": {
+        "target": "es5",
+        "module": "esnext",
         "allowJs": true,
         "strict": true,
         "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
         "lib": [
             "dom",
-            "es2015"
+            "dom.iterable",
+            "esnext"
         ],
-        "jsx": "react-jsx"
-    }
+        "jsx": "react-jsx",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": true
+    },
+    "include": [
+        "src",
+        "public"
+    ]
 }
