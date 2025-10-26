@@ -7,17 +7,12 @@ const getTargetAccountId = (req: Request): string => {
     return req.params.accountId || req.body.accountId || MOCK_CUSTOMER_ACCOUNT_ID;
 };
 
-/**
- * [POST /api/transactions] ⬅️ Guarda la transacción en MongoDB.
- * Llamada desde frontend/src/utils/api.js -> saveTransaction
- */
 export const createTransaction = async (req: Request, res: Response): Promise<void> => {
     const {
         monto, categoria, establecimiento, accountId,
         isHormiga, transferAmount, validation, message
     } = req.body;
 
-    // Usamos el ID del cliente mock
     const nessieCustomerId = getTargetAccountId(req);
 
     try {
@@ -30,7 +25,6 @@ export const createTransaction = async (req: Request, res: Response): Promise<vo
             transferAmount,
             validation,
             message,
-            // Fecha se usa el default: Date.now
         });
 
         console.log(`✅ Transacción guardada en DB: ${newTransaction._id}`);
@@ -42,17 +36,12 @@ export const createTransaction = async (req: Request, res: Response): Promise<vo
     }
 };
 
-/**
- * [GET /api/transactions/:accountId] ⬅️ Obtiene el historial.
- * Llamada desde frontend/src/utils/api.js -> getHistory
- */
 export const getTransactionsByAccount = async (req: Request, res: Response): Promise<void> => {
     const nessieCustomerId = getTargetAccountId(req);
 
     try {
-        // Buscamos todas las transacciones del cliente, ordenadas por fecha descendente
         const history = await TransactionModel.find({ nessieCustomerId })
-            .sort({ fecha: -1 }); // -1 para más reciente primero
+            .sort({ fecha: -1 }); 
 
         res.status(200).json({ success: true, history });
 

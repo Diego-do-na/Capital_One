@@ -1,5 +1,3 @@
-// src/routes/savingsRoutes.ts
-
 import { Router } from 'express';
 import * as savingsController from '../controllers/savingsController.js';
 

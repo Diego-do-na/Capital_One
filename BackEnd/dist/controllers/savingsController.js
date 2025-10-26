@@ -49,13 +49,12 @@ export const setSavingsThreshold = async (req, res) => {
 
 export const mirrorSavings = async (req, res) => {
     const { purchaseAmount } = req.body;
-    const targetAccountId = getTargetAccountId(req); // Obtenemos el ID del cliente
+    const targetAccountId = getTargetAccountId(req);
     if (typeof purchaseAmount !== 'number' || purchaseAmount <= 0) {
         res.status(400).json({ success: false, message: 'Monto de compra inválido.' });
         return;
     }
     try {
-        // El algoritmo obtiene el umbral de la DB internamente
         const result = await processMirrorSavings(targetAccountId, purchaseAmount);
         res.status(200).json({ success: true, data: result });
     }

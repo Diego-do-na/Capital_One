@@ -3,10 +3,8 @@ import { createTransaction, getTransactionsByAccount } from '../controllers/tran
 
 const router = Router();
 
-// Ruta para guardar una nueva transacción (llamada por saveTransaction en el frontend)
 router.post('/', createTransaction);
 
-// Ruta para obtener el historial de un cliente (llamada por getHistory en el frontend)
 router.get('/:accountId', getTransactionsByAccount);
 
 export default router;

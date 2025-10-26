@@ -34,6 +34,5 @@ export interface SavingsProcessResult {
     transferredAmount: string | number;
     purchasesCount?: number;
     transferId?: string;
-    // ⬅️ ¡CORRECCIÓN! Añadimos el nuevo estado del caso de borde
     validation?: 'SUCCESS' | 'FAILED_BALANCE' | 'SKIP' | 'FAILED_MIRROR';
 }
