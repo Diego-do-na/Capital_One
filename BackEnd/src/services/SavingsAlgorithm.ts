@@ -1,15 +1,7 @@
-// src/services/SavingsAlgorithm.ts
-
-// Importamos las funciones (valores ejecutables) de la capa de servicio de Nessie
 import { getRecentPurchases, createTransfer, getAccountDetails } from './NessieService.js';
-
-// Importamos solo tipos
 import type { Purchase, SavingsProcessResult } from '../types/nessie.js';
-
-// Importamos el modelo (valor ejecutable) y el tipo (solo tipo) de Mongoose
 import CustomerModel, { type ICustomer } from '../models/Customer.js';
 
-// MOCK: ID de la cuenta simulada que representa el fondo de inversión (ID de Nessie)
 const MOCK_INVESTMENT_ACCOUNT_ID = '68fd2f9b9683f20dd51a476b';
 const DEFAULT_THRESHOLD = 5.00;
 
@@ -19,45 +11,37 @@ const DEFAULT_THRESHOLD = 5.00;
  * @returns La configuración del cliente de la DB.
  */
 async function getCustomerConfig(accountId: string): Promise<ICustomer> {
-    let config = await CustomerModel.findOne({ nessieCustomerId: accountId });
+    let config = await CustomerModel.findOne({ CustomerId: accountId });
 
     if (!config) {
-        // Si no se encuentra, creamos un registro inicial
         config = new CustomerModel({
-            nessieCustomerId: accountId,
-            savingsThreshold: DEFAULT_THRESHOLD
+            CustomerId: accountId,
+            savings: DEFAULT_THRESHOLD
         });
         await config.save();
     }
 
-    // Se asegura de que el tipo sea ICustomer
     return config as ICustomer;
 }
 
-/**
- * 1. ALGORITMO BATCH (HISTÓRICO)
- * Procesa todas las compras hormiga recientes y ejecuta una ÚNICA transferencia.
- */
 export async function processHormigaSavings(
     customerAccountId: string
-): Promise<SavingsProcessResult> { // ⬅️ Tipado del retorno
+): Promise<SavingsProcessResult> { 
 
     // 1. Obtener la configuración del umbral desde la DB
     const customerConfig = await getCustomerConfig(customerAccountId);
-    const currentThreshold = customerConfig.savingsThreshold;
+    const currentThreshold = customerConfig.savings;
 
     if (currentThreshold <= 0) {
         return {
             message: 'Umbral de ahorro no configurado o inválido.',
             transferredAmount: 0,
             purchasesCount: 0,
-        } as SavingsProcessResult; // ⬅️ Tipado explícito
+        } as SavingsProcessResult;
     }
 
-    // 2. Obtener las compras recientes del cliente (ej. última semana)
     const recentPurchases: Purchase[] = await getRecentPurchases(customerAccountId);
 
-    // 3. Aplicar la lógica del "Gasto Hormiga"
     const hormigaPurchases = recentPurchases.filter(
         (purchase) => purchase.amount > 0 && purchase.amount <= currentThreshold
     );
@@ -67,16 +51,14 @@ export async function processHormigaSavings(
             message: `No se encontraron gastos hormiga bajo el umbral de $${currentThreshold.toFixed(2)}.`,
             transferredAmount: 0,
             purchasesCount: 0,
-        } as SavingsProcessResult; // ⬅️ Tipado explícito
+        } as SavingsProcessResult;
     }
 
-    // 4. Calcular el "Costo Doble" total
     const totalAmountToTransfer = hormigaPurchases.reduce(
         (sum, purchase) => sum + purchase.amount,
         0
     );
 
-    // 5. Ejecutar la transferencia simulada
     try {
         const transferResult = await createTransfer(
             customerAccountId,
@@ -89,39 +71,29 @@ export async function processHormigaSavings(
             transferredAmount: totalAmountToTransfer.toFixed(2),
             purchasesCount: hormigaPurchases.length,
             transferId: transferResult._id,
-        } as SavingsProcessResult; // ⬅️ Tipado explícito
+        } as SavingsProcessResult;
     } catch (error) {
         console.error('Fallo el proceso de ahorro hormiga (Batch):', error);
         throw new Error('Error al ejecutar la transferencia del ahorro hormiga (Batch).');
     }
 }
 
-
-/**
- * 2. ALGORITMO TIEMPO REAL (ESPEJO)
- * Procesa una compra individual, valida el saldo disponible y ejecuta la transferencia espejo.
- */
 export async function processMirrorSavings(
     customerAccountId: string,
     purchaseAmount: number
-): Promise<SavingsProcessResult> { // ⬅️ Tipado del retorno
-
-    // 1. Obtener la configuración del umbral desde la DB
+): Promise<SavingsProcessResult> {
     const customerConfig = await getCustomerConfig(customerAccountId);
-    const currentThreshold = customerConfig.savingsThreshold;
+    const currentThreshold = customerConfig.savings;
 
     const amountToMirror = purchaseAmount;
-
-    // 2. Verificar si el monto es un Gasto Hormiga válido
     if (amountToMirror <= 0 || amountToMirror > currentThreshold) {
         return {
             message: `La compra de $${amountToMirror.toFixed(2)} no califica como gasto hormiga (Umbral: $${currentThreshold.toFixed(2)}).`,
             transferredAmount: 0,
             validation: 'SKIP',
-        } as SavingsProcessResult; // ⬅️ Tipado explícito y correcto
+        } as SavingsProcessResult;
     }
 
-    // 3. Obtener Saldo Actual y Validar Fondos
     const accountInfo = await getAccountDetails(customerAccountId);
     const currentBalance = accountInfo.balance;
 
@@ -130,11 +102,10 @@ export async function processMirrorSavings(
         return {
             message: `Saldo insuficiente ($${currentBalance.toFixed(2)}) para el ahorro espejo de $${amountToMirror.toFixed(2)}.`,
             transferredAmount: 0,
-            validation: 'FAILED_BALANCE', // ⬅️ Tipo literal de la unión
-        } as SavingsProcessResult; // ⬅️ Tipado explícito
+            validation: 'FAILED_BALANCE',
+        } as SavingsProcessResult;
     }
 
-    // 4. Ejecutar la Transferencia Espejo
     try {
         const transferResult = await createTransfer(
             customerAccountId,
@@ -145,9 +116,9 @@ export async function processMirrorSavings(
         return {
             message: 'Ahorro espejo procesado exitosamente.',
             transferredAmount: amountToMirror.toFixed(2),
-            validation: 'SUCCESS', // ⬅️ Tipo literal de la unión
+            validation: 'SUCCESS',
             transferId: transferResult._id,
-        } as SavingsProcessResult; // ⬅️ Tipado explícito
+        } as SavingsProcessResult;
     } catch (error) {
         console.error('Fallo la transferencia del ahorro espejo:', error);
         throw new Error('Error al ejecutar la transferencia del ahorro espejo.');

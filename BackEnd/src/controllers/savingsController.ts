@@ -4,17 +4,12 @@ import type { SavingsProcessResult } from '../types/nessie.js';
 import CustomerModel from '../models/Customer.js';
 import type { ICustomer } from '../models/Customer.js';
 
-// MOCK: ID de Cuenta simulada para el MVP si no se envía en el cuerpo de la petición
 const MOCK_CUSTOMER_ACCOUNT_ID = 'genarinh0';
 
 const getTargetAccountId = (req: Request): string => {
     return req.body.accountId || MOCK_CUSTOMER_ACCOUNT_ID;
 };
 
-/**
- * [POST /api/savings/process] (BATCH)
- * Ejecuta el algoritmo de revisión histórica de gastos hormiga.
- */
 export const processSavings = async (req: Request, res: Response): Promise<void> => {
 
     try {
@@ -30,10 +25,6 @@ export const processSavings = async (req: Request, res: Response): Promise<void>
     }
 };
 
-/**
- * [PUT /api/savings/threshold] (CONFIGURACIÓN)
- * Actualiza el umbral de gasto hormiga en la base de datos.
- */
 export const setSavingsThreshold = async (req: Request, res: Response): Promise<void> => {
     console.log('SET THRESHOLD body:', req.body);
     const { newThreshold } = req.body;
@@ -72,10 +63,6 @@ export const setSavingsThreshold = async (req: Request, res: Response): Promise<
     }
 };
 
-/**
- * [POST /api/savings/mirror] (TIEMPO REAL)
- * Simula una compra inmediata, valida el saldo y ejecuta el ahorro espejo.
- */
 export const mirrorSavings = async (req: Request, res: Response): Promise<void> => {
     console.log('MIRROR body:', req.body);
     const { purchaseAmount, category, establishment } = req.body;
