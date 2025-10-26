@@ -41,7 +41,7 @@ export const getCustomerStatus = async (req: Request, res: Response): Promise<vo
 };
 
 /**
- * [POST /api/savings/mirror] (Lógica ML con Descuento Corregido)
+ * [POST /api/savings/mirror] (Lógica ML con Descuento Corregido y Saldo Parcial)
  */
 export const mirrorSavings = async (req: Request, res: Response): Promise<void> => {
     const { purchaseAmount, categoria, establecimiento } = req.body;
@@ -61,27 +61,38 @@ export const mirrorSavings = async (req: Request, res: Response): Promise<void> 
         );
 
         let amountToTransfer = 0;
-        let amountToDiscount = purchaseAmount; // ⬅️ Siempre descontamos el gasto base
+        let amountToDiscount = 0;
 
-        // Solo si la validación es SUCCESS, hay transferencia de ahorro
-        if (result.validation === 'SUCCESS') {
+        const validationStatus = result.validation;
+
+        // ⬅️ CASO 1: ÉXITO (Hormiga + Espejo completo)
+        if (validationStatus === 'SUCCESS') {
             amountToTransfer = parseFloat(result.transferredAmount as string);
-            amountToDiscount += amountToTransfer; // ⬅️ Sumamos el ahorro para el Costo Doble
+            amountToDiscount = purchaseAmount + amountToTransfer; // Costo Doble
+
+            // ⬅️ CASO 2: DESCUENTO SIMPLE (Gasto Normal o Saldo Parcial)
+        } else if (validationStatus === 'SKIP' || validationStatus === 'FAILED_MIRROR') {
+            // El gasto base siempre se aprueba y se descuenta en estos casos.
+            amountToDiscount = purchaseAmount;
+
+            // ⬅️ CASO 3: RECHAZO TOTAL (FAILED_BALANCE)
+        } else if (validationStatus === 'FAILED_BALANCE') {
+            // amountToDiscount permanece en 0. NO SE APLICA EL DESCUENTO.
         }
 
-        // ⬅️ LÓGICA DE ACTUALIZACIÓN DE MONGODB
-        // Se ejecuta en TODOS los casos (SUCCESS, SKIP, FAILED_BALANCE)
-        await CustomerModel.findOneAndUpdate(
-            { nessieCustomerId: targetAccountId },
-            {
-                $inc: {
-                    // Descontamos el Gasto Base O el Costo Doble (purchaseAmount + amountToTransfer)
-                    saldoNormal: -amountToDiscount,
-                    // Sumamos 0 (si es SKIP) o el monto del ahorro (si es SUCCESS)
-                    ahorroTotal: amountToTransfer
+        // 🛑 LÓGICA DE ACTUALIZACIÓN DE MONGODB
+        // Solamente aplicamos el descuento si la transacción NO fue rechazada totalmente.
+        if (validationStatus !== 'FAILED_BALANCE') {
+            await CustomerModel.findOneAndUpdate(
+                { nessieCustomerId: targetAccountId },
+                {
+                    $inc: {
+                        saldoNormal: -amountToDiscount, // Descontamos el Gasto Base O el Costo Doble
+                        ahorroTotal: amountToTransfer   // Sumamos 0 o el monto del ahorro
+                    }
                 }
-            }
-        );
+            );
+        }
 
         res.status(200).json({ success: true, data: result });
     } catch (error) {

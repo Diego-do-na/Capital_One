@@ -25,7 +25,8 @@ export function SideMenu({ ahorro, saldo, onClose, onNavigateHistory }) {
                     style={{
                         width: '100%',
                         padding: '10px',
-                        backgroundColor: '#f0f0f0',
+                        backgroundColor: '#e6f2ff',
+                        color: '#007bff',
                         border: 'none',
                         borderRadius: '8px',
                         cursor: 'pointer',

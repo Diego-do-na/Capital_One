@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getHistory } from "./utils/api";
 
-// Helper para traducir el estado de validación a texto y color
+// Helper para traducir el estado de validación a texto y color (de styles.css)
 const statusStyles = {
     SUCCESS: { text: "Ahorro Ejecutado", color: "#28a745" }, // Verde
     FAILED_MIRROR: { text: "Compra OK, Ahorro Falló", color: "#ffc107" }, // Amarillo
@@ -32,7 +32,7 @@ export function HistoryScreen({ onClose }) {
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat("es-MX", {
             style: "currency",
-            currency: "USD",
+            currency: "MXN",
         }).format(amount);
     };
 
@@ -79,12 +79,8 @@ export function HistoryScreen({ onClose }) {
                     </thead>
                     <tbody>
                     {history.map((tx) => {
-                        // Determinamos el estado final basado en los datos guardados
-                        const statusKey = tx.validation || (
-                            tx.isHormiga && tx.transferAmount > 0 ? "SUCCESS" :
-                                tx.isHormiga && tx.transferAmount === 0 ? "FAILED_MIRROR" :
-                                    "SKIP" // Default a SKIP si no es hormiga
-                        );
+                        // Determinamos el estado final basado en la validación guardada
+                        const statusKey = tx.validation || "SKIP"; // Usamos el validation del backend
 
                         return (
                             <tr key={tx._id}>
