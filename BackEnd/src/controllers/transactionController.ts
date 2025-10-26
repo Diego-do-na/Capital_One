@@ -1,7 +1,8 @@
+// src/controllers/transactionController.ts
+
 import type { Request, Response } from 'express';
 import TransactionModel from '../models/Transaction.js';
 
-// MOCK: ID de Cuenta simulada para el MVP
 const MOCK_CUSTOMER_ACCOUNT_ID = 'TEST_HACKATHON_USER';
 const getTargetAccountId = (req: Request): string => {
     return req.params.accountId || req.body.accountId || MOCK_CUSTOMER_ACCOUNT_ID;
@@ -9,11 +10,10 @@ const getTargetAccountId = (req: Request): string => {
 
 /**
  * [POST /api/transactions]
- * Agrega una nueva transacción al historial (llamado por el cliente después del gasto).
+ * Agrega una nueva transacción al historial.
  */
 export const addTransaction = async (req: Request, res: Response): Promise<void> => {
     try {
-        // Los datos vienen del frontend después de que el usuario hace clic en guardar
         const { monto, categoria, establecimiento, isHormiga, transferAmount, message } = req.body;
         const nessieCustomerId = getTargetAccountId(req);
 
@@ -22,7 +22,7 @@ export const addTransaction = async (req: Request, res: Response): Promise<void>
             monto,
             categoria,
             establecimiento,
-            isHormiga: isHormiga || false, // Asumir false si no se especifica
+            isHormiga: isHormiga || false,
             transferAmount: transferAmount || 0,
             message: message || 'Gasto registrado',
         });
@@ -38,13 +38,12 @@ export const addTransaction = async (req: Request, res: Response): Promise<void>
 
 /**
  * [GET /api/transactions/:accountId]
- * Obtiene el historial de transacciones de un cliente (para mostrar en el frontend).
+ * Obtiene el historial de transacciones.
  */
 export const getTransactionsHistory = async (req: Request, res: Response): Promise<void> => {
     try {
         const nessieCustomerId = getTargetAccountId(req);
 
-        // Obtenemos las últimas 50 transacciones, ordenadas por fecha descendente
         const history = await TransactionModel.find({ nessieCustomerId })
             .sort({ fecha: -1 })
             .limit(50);

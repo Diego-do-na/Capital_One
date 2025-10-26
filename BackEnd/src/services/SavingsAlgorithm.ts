@@ -1,32 +1,69 @@
-<<<<<<< HEAD
 // src/services/SavingsAlgorithm.ts
 
-import { createTransfer, getAccountDetails } from './NessieService.js';
+import axios from 'axios'; // Necesario para llamar al servicio de ML en Python
+import { createTransfer } from './NessieService.js';
 import type { SavingsProcessResult } from '../types/nessie.js';
-=======
-import { getRecentPurchases, createTransfer, getAccountDetails } from './NessieService.js';
-import type { Purchase, SavingsProcessResult } from '../types/nessie.js';
 import CustomerModel, { type ICustomer } from '../models/Customer.js';
->>>>>>> a8e6c19a0ab32ecd6ffcbf6e3ac7447da95cd7ef
 
+// URL de tu servicio de Machine Learning (Python/FastAPI)
+const ML_SERVICE_URL = 'http://localhost:8000/predict';
 const MOCK_INVESTMENT_ACCOUNT_ID = '68fd2f9b9683f20dd51a476b';
+const DEFAULT_THRESHOLD = 5.00; // Usado solo como fallback de contingencia
 
 /**
- * FUNCIÓN ML SIMULADA: En la vida real, aquí harías una petición HTTP a tu servidor Python (p.ej., http://localhost:8000/predict).
+ * FUNCIÓN ML REAL: Hace una petición HTTP al servidor de Python/FastAPI.
+ * @returns true (1) si es gasto hormiga, false (0) si no lo es.
  */
-<<<<<<< HEAD
 async function classifyGastoML(purchaseAmount: number, categoria: string, establecimiento: string): Promise<boolean> {
-    console.log(`ML MOCK: Clasificando $${purchaseAmount} (${categoria}, ${establecimiento})...`);
 
-    // 🚨 Lógica de Clasificación ML MOCK:
-    // Simula que el modelo clasifica gastos pequeños en categorías comunes como hormiga.
-    if (purchaseAmount > 0 && purchaseAmount <= 5.00) {
-        // En el mock, clasificaremos cualquier gasto menor a 5.00 como hormiga
-        return Promise.resolve(true);
+    console.log(`ML CLIENT: Enviando datos a ${ML_SERVICE_URL}...`);
+
+    try {
+        const response = await axios.post(ML_SERVICE_URL, {
+            precio: purchaseAmount, // Nombre de la variable que espera Python
+            categoria: categoria,
+            tienda: establecimiento
+        });
+
+        const isHormiga = response.data?.is_hormiga === 1;
+
+        console.log(`ML CLIENT: Respuesta recibida: ${isHormiga ? 'Hormiga (1)' : 'Normal (0)'}`);
+
+        return isHormiga;
+
+    } catch (error) {
+        // ❌ FALLBACK DE CONTINGENCIA: Si el servidor Python no responde (404, 500, etc.)
+        console.error("❌ FALLO DE CONEXIÓN CON SERVICIO ML (PYTHON). Usando lógica de contingencia.");
+
+        // Usamos una lógica simple de fallback (monto <= $5.00)
+        if (purchaseAmount > 0 && purchaseAmount <= DEFAULT_THRESHOLD) {
+            console.warn("ML FALLBACK: Usando lógica simple (<= $5.00) como contingencia.");
+            return true;
+        }
+        return false;
+    }
+}
+
+/**
+ * Función auxiliar para obtener la configuración del cliente (Persistencia en DB).
+ */
+async function getCustomerConfig(accountId: string): Promise<ICustomer> {
+    let config = await CustomerModel.findOne({ nessieCustomerId: accountId });
+
+    if (!config) {
+        // Crea el documento si el cliente único no existe
+        config = new CustomerModel({
+            nessieCustomerId: accountId,
+            saldoNormal: 10000.00,
+            ahorroTotal: 0.00,
+        });
+        await config.save();
     }
 
-    return Promise.resolve(false);
+    return config as ICustomer;
 }
+
+// ... (processHormigaSavings omitido) ...
 
 /**
  * ALGORITMO TIEMPO REAL (ESPEJO) - Impulsado por ML
@@ -41,118 +78,19 @@ export async function processMirrorSavings(
     const amountToMirror = purchaseAmount;
 
     // 1. CLASIFICACIÓN DE MACHINE LEARNING
-    // src/services/SavingsAlgorithm.ts (Dentro de processMirrorSavings)
+    const isHormigaML = await classifyGastoML(amountToMirror, categoria, establecimiento);
 
-// ...
-
-// 1. CLASIFICACIÓN DE MACHINE LEARNING
-    try {
-        const isHormigaML = await classifyGastoML(amountToMirror, categoria, establecimiento);
-        // ...
-    } catch (e) {
-        // Si la función classifyGastoML lanza un error (por ejemplo, TypeError),
-        // esta excepción es atrapada y la función processMirrorSavings falla.
-        console.error("Error en la clasificación ML:", e);
-        throw new Error("Fallo en el servicio de clasificación de gastos."); // Lanza un error genérico
-    }
-
-    /**if (!isHormigaML) {
+    if (!isHormigaML) {
         return {
             message: `Gasto de $${amountToMirror.toFixed(2)} clasificado como NO hormiga por el modelo ML.`,
             transferredAmount: 0,
             validation: 'SKIP',
         } as SavingsProcessResult;
-    }*/
-
-    // 2. Obtener Saldo Actual y Validar Fondos
-=======
-async function getCustomerConfig(accountId: string): Promise<ICustomer> {
-    let config = await CustomerModel.findOne({ CustomerId: accountId });
-
-    if (!config) {
-        config = new CustomerModel({
-            CustomerId: accountId,
-            savings: DEFAULT_THRESHOLD
-        });
-        await config.save();
     }
 
-    return config as ICustomer;
-}
-
-export async function processHormigaSavings(
-    customerAccountId: string
-): Promise<SavingsProcessResult> { 
-
-    // 1. Obtener la configuración del umbral desde la DB
-    const customerConfig = await getCustomerConfig(customerAccountId);
-    const currentThreshold = customerConfig.savings;
-
-    if (currentThreshold <= 0) {
-        return {
-            message: 'Umbral de ahorro no configurado o inválido.',
-            transferredAmount: 0,
-            purchasesCount: 0,
-        } as SavingsProcessResult;
-    }
-
-    const recentPurchases: Purchase[] = await getRecentPurchases(customerAccountId);
-
-    const hormigaPurchases = recentPurchases.filter(
-        (purchase) => purchase.amount > 0 && purchase.amount <= currentThreshold
-    );
-
-    if (hormigaPurchases.length === 0) {
-        return {
-            message: `No se encontraron gastos hormiga bajo el umbral de $${currentThreshold.toFixed(2)}.`,
-            transferredAmount: 0,
-            purchasesCount: 0,
-        } as SavingsProcessResult;
-    }
-
-    const totalAmountToTransfer = hormigaPurchases.reduce(
-        (sum, purchase) => sum + purchase.amount,
-        0
-    );
-
-    try {
-        const transferResult = await createTransfer(
-            customerAccountId,
-            MOCK_INVESTMENT_ACCOUNT_ID,
-            totalAmountToTransfer
-        );
-
-        return {
-            message: 'Ahorro Hormiga (Batch) procesado exitosamente.',
-            transferredAmount: totalAmountToTransfer.toFixed(2),
-            purchasesCount: hormigaPurchases.length,
-            transferId: transferResult._id,
-        } as SavingsProcessResult;
-    } catch (error) {
-        console.error('Fallo el proceso de ahorro hormiga (Batch):', error);
-        throw new Error('Error al ejecutar la transferencia del ahorro hormiga (Batch).');
-    }
-}
-
-export async function processMirrorSavings(
-    customerAccountId: string,
-    purchaseAmount: number
-): Promise<SavingsProcessResult> {
-    const customerConfig = await getCustomerConfig(customerAccountId);
-    const currentThreshold = customerConfig.savings;
-
-    const amountToMirror = purchaseAmount;
-    if (amountToMirror <= 0 || amountToMirror > currentThreshold) {
-        return {
-            message: `La compra de $${amountToMirror.toFixed(2)} no califica como gasto hormiga (Umbral: $${currentThreshold.toFixed(2)}).`,
-            transferredAmount: 0,
-            validation: 'SKIP',
-        } as SavingsProcessResult;
-    }
-
->>>>>>> a8e6c19a0ab32ecd6ffcbf6e3ac7447da95cd7ef
-    const accountInfo = await getAccountDetails(customerAccountId);
-    const currentBalance = accountInfo.balance;
+    // 2. OBTENER SALDO DEL MÓDULO PERSISTENTE (MongoDB)
+    const customer = await getCustomerConfig(customerAccountId);
+    const currentBalance = customer.saldoNormal;
 
     if (currentBalance < amountToMirror) {
         console.warn(`Saldo de $${currentBalance} insuficiente para espejo de $${amountToMirror}.`);
@@ -163,10 +101,7 @@ export async function processMirrorSavings(
         } as SavingsProcessResult;
     }
 
-<<<<<<< HEAD
-    // 3. Ejecutar la Transferencia Espejo
-=======
->>>>>>> a8e6c19a0ab32ecd6ffcbf6e3ac7447da95cd7ef
+    // 3. Ejecutar la Transferencia Espejo (MOCK)
     try {
         const transferResult = await createTransfer(
             customerAccountId,

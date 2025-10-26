@@ -1,18 +1,18 @@
+// src/models/Transaction.ts
+
 import mongoose, { Schema, Document } from 'mongoose';
 
-// Interfaz para TypeScript
 export interface ITransaction extends Document {
     nessieCustomerId: string;
     monto: number;
     categoria: string;
     establecimiento: string;
     fecha: Date;
-    isHormiga: boolean; // ¿Fue clasificado como gasto hormiga?
-    transferAmount: number; // Monto real transferido (0 si no aplica)
-    message: string; // Mensaje de éxito/fallo
+    isHormiga: boolean;
+    transferAmount: number;
+    message: string;
 }
 
-// Esquema de Mongoose
 const TransactionSchema: Schema = new Schema({
     nessieCustomerId: { type: String, required: true },
     monto: { type: Number, required: true },
@@ -24,5 +24,4 @@ const TransactionSchema: Schema = new Schema({
     message: { type: String, default: 'Gasto registrado' },
 });
 
-// Exporta el modelo
 export default mongoose.model<ITransaction>('Transaction', TransactionSchema);
