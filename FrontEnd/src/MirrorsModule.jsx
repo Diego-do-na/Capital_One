@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Header } from "./Header";
 import { SideMenu } from "./SideMenu";
 import { AddGastoModal } from "./AddGastoModal";
+import { api } from './api-service';
 
 export default function MirrorsModule() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -15,6 +16,21 @@ export default function MirrorsModule() {
   // --- ¡CAMBIO 1: Nuevo estado para bloquear el umbral! ---
   const [isUmbralLocked, setIsUmbralLocked] = useState(false);
   // --------------------------------------------------------
+
+    const fetchSavings = async () => {
+    try {
+      const response = await api.get('/api/savings');
+      // Update state with the response data
+      setAhorroTotal(response.data.totalSavings || 0);
+      setSaldoNormal(response.data.normalBalance || 10000);
+    } catch (error) {
+      console.error('Error fetching savings:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchSavings();
+  }, []);
 
   const handleGuardarGasto = async (monto, categoria, establecimiento) => {
     // La lógica de validación del umbral (+5) sigue aquí
@@ -71,8 +87,8 @@ export default function MirrorsModule() {
       />
 
       <div className="main-content-centered">
-        <h1>Función Mirrors</h1>
-        <p>Registra un gasto para duplicarlo en tu ahorro.</p>
+        <h1>Mirror Savings</h1>
+        <p>Register Your Expenses and Start Saving Money</p>
 
         {/* --- ¡CAMBIO 2: Campo de Umbral ahora se bloquea! --- */}
         <div
@@ -84,7 +100,7 @@ export default function MirrorsModule() {
             style={{ fontWeight: "600", marginBottom: "8px", display: "block" }}
           >
             {/* El texto de la etiqueta cambia si está bloqueado */}
-            {isUmbralLocked ? "Umbral Base:" : "Umbral Base:"}
+            {isUmbralLocked ? "Threshold:" : "Threshold:"}
           </label>
           <div className="monto-input-wrapper">
             <span>$</span>
@@ -121,7 +137,7 @@ export default function MirrorsModule() {
           }}
         >
           {/* Mostramos un texto diferente si está apagado */}
-          {!isMirrorsActive ? "Función desactivada" : "+ Registrar Gasto"}
+          {!isMirrorsActive ? "Function Deactivated" : "+ Log Expense"}
         </button>
         {/* ------------------------------------------------- */}
       </div>

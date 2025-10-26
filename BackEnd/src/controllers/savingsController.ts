@@ -26,6 +26,7 @@ const getTargetAccountId = (req: Request): string => {
  * Ejecuta el algoritmo de revisión histórica de gastos hormiga.
  */
 export const processSavings = async (req: Request, res: Response): Promise<void> => {
+
     try {
         const targetAccountId = getTargetAccountId(req);
 
@@ -44,6 +45,7 @@ export const processSavings = async (req: Request, res: Response): Promise<void>
  * Actualiza el umbral de gasto hormiga en la base de datos.
  */
 export const setSavingsThreshold = async (req: Request, res: Response): Promise<void> => {
+    console.log('SET THRESHOLD body:', req.body);
     const { newThreshold } = req.body;
     const customerId = getTargetAccountId(req); // Obtenemos el ID del cliente
 
@@ -86,6 +88,7 @@ export const setSavingsThreshold = async (req: Request, res: Response): Promise<
  * Simula una compra inmediata, valida el saldo y ejecuta el ahorro espejo.
  */
 export const mirrorSavings = async (req: Request, res: Response): Promise<void> => {
+    console.log('MIRROR body:', req.body);
     const { purchaseAmount } = req.body;
     const targetAccountId = getTargetAccountId(req); // Obtenemos el ID del cliente
 
@@ -105,5 +108,22 @@ export const mirrorSavings = async (req: Request, res: Response): Promise<void> 
     } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Error interno desconocido en Mirror.';
         res.status(500).json({ success: false, error: errorMessage });
+    }
+};
+
+export const getSavings = async (req: Request, res: Response): Promise<void> => {
+    try {
+        // Respuesta mínima para verificar conexión; luego puedes reemplazar por consulta a DB
+        res.status(200).json({
+            success: true,
+            data: {
+                totalSavings: 0,
+                normalBalance: 10000,
+                threshold: 50
+            }
+        });
+    } catch (error) {
+        const msg = error instanceof Error ? error.message : 'Error interno';
+        res.status(500).json({ success: false, error: msg });
     }
 };

@@ -8,13 +8,14 @@ export function SideMenu({ ahorro, saldo, onClose }) {
         <button onClick={onClose} className="sidemenu-close-btn">
           X
         </button>
-        <h3>Mis Cuentas</h3>
+        <h1>My Accounts</h1><br></br>
         <div>
-          <p>Saldo Normal:</p>
+          <p>Main Account:</p>
           <h4>${saldo.toFixed(2)}</h4>
         </div>
         <div>
-          <p>Ahorro Mirrors:</p>
+          <br></br>
+          <p>Savings:</p>
           <h4>${ahorro.toFixed(2)}</h4>
         </div>
       </div>

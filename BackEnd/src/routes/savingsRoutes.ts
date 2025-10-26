@@ -18,4 +18,6 @@ router.put('/threshold', savingsController.setSavingsThreshold);
 // Accedemos a la función usando el objeto importado: savingsController.mirrorSavings
 router.post('/mirror', savingsController.mirrorSavings);
 
+router.get('/', savingsController.getSavings);
+
 export default router;
