@@ -6,6 +6,8 @@ import * as dotenv from 'dotenv';
 import connectDB from './config/db.js';
 import savingsRoutes from './routes/savingsRoutes.js';
 import cors from 'cors'; // Aseguramos que cors se esté usando
+import transactionRoutes from './routes/transactionRoutes.js';
+
 
 dotenv.config();
 
@@ -16,6 +18,7 @@ const app = express();
 // Middlewares
 app.use(cors());
 app.use(express.json());
+app.use('/api/transactions', transactionRoutes);
 
 // Rutas de Salud
 app.get('/', (req: Request, res: Response) => {
