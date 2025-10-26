@@ -1,93 +1,55 @@
 // src/controllers/savingsController.ts
 
 import type { Request, Response } from 'express';
-// Importamos ambos algoritmos (valores ejecutables)
-import { processHormigaSavings, processMirrorSavings } from '../services/SavingsAlgorithm.js';
+import { processMirrorSavings } from '../services/SavingsAlgorithm.js';
 import type { SavingsProcessResult } from '../types/nessie.js';
-
-// Importamos el modelo de Mongoose (valor ejecutable) y la interfaz (solo tipo)
 import CustomerModel from '../models/Customer.js';
-import type { ICustomer } from '../models/Customer.js';
 
-// MOCK: ID de Cuenta simulada para el MVP si no se envía en el cuerpo de la petición
-const MOCK_CUSTOMER_ACCOUNT_ID = '66778899aabbccddeeff0011';
+const MOCK_CUSTOMER_ACCOUNT_ID = 'TEST_HACKATHON_USER';
 
-/**
- * Función auxiliar para obtener el ID de cuenta de la petición.
- * En un entorno real, esto vendría de un token de autenticación.
- */
 const getTargetAccountId = (req: Request): string => {
-    // Intenta obtener el ID del cuerpo, si no usa el MOCK
-    return req.body.accountId || MOCK_CUSTOMER_ACCOUNT_ID;
+    // Fijo para un solo cliente
+    return req.params.accountId || req.body.accountId || MOCK_CUSTOMER_ACCOUNT_ID;
 };
 
 /**
- * [POST /api/savings/process] (BATCH)
- * Ejecuta el algoritmo de revisión histórica de gastos hormiga.
+ * [GET /api/savings/status/:accountId]
+ * Obtiene el saldo y ahorro del único cliente para inicializar el frontend.
  */
-export const processSavings = async (req: Request, res: Response): Promise<void> => {
+export const getCustomerStatus = async (req: Request, res: Response): Promise<void> => {
     try {
-        const targetAccountId = getTargetAccountId(req);
+        const customerId = getTargetAccountId(req);
+        const customer = await CustomerModel.findOne({ nessieCustomerId: customerId });
 
-        // El algoritmo se encarga de obtener el umbral de la DB internamente
-        const result: SavingsProcessResult = await processHormigaSavings(targetAccountId);
-
-        res.status(200).json({ success: true, data: result });
-    } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Error interno desconocido en Batch.';
-        res.status(500).json({ success: false, error: errorMessage });
-    }
-};
-
-/**
- * [PUT /api/savings/threshold] (CONFIGURACIÓN)
- * Actualiza el umbral de gasto hormiga en la base de datos.
- */
-export const setSavingsThreshold = async (req: Request, res: Response): Promise<void> => {
-    const { newThreshold } = req.body;
-    const customerId = getTargetAccountId(req); // Obtenemos el ID del cliente
-
-    if (typeof newThreshold !== 'number' || newThreshold <= 0) {
-        res.status(400).json({
-            success: false,
-            message: 'El umbral debe ser un número positivo.'
-        });
-        return;
-    }
-
-    try {
-        // Busca al cliente por su ID de Nessie y actualiza/crea el umbral
-        const updatedCustomer: ICustomer | null = await CustomerModel.findOneAndUpdate(
-            { nessieCustomerId: customerId },
-            { savingsThreshold: newThreshold },
-            { new: true, upsert: true } // 'upsert: true' crea el documento si no existe
-        );
-
-        // Si se actualizó correctamente, devolvemos el nuevo umbral
-        if (updatedCustomer) {
+        if (!customer) {
+            // Si el cliente no existe, lo inicializa con valores por defecto
             res.status(200).json({
                 success: true,
-                message: 'Umbral de ahorro configurado exitosamente.',
-                currentThreshold: updatedCustomer.savingsThreshold.toFixed(2)
+                saldoNormal: 10000.00,
+                ahorroTotal: 0.00,
             });
-        } else {
-            // Esto solo ocurriría en un caso de error extremo de DB
-            res.status(500).json({ success: false, message: 'Fallo al obtener el documento actualizado de la base de datos.' });
+            return;
         }
 
+        res.status(200).json({
+            success: true,
+            saldoNormal: customer.saldoNormal,
+            ahorroTotal: customer.ahorroTotal,
+        });
+
     } catch (error) {
-        console.error('Error al guardar el umbral en DB:', error);
-        res.status(500).json({ success: false, message: 'Fallo la actualización de la base de datos.' });
+        console.error('Error al obtener el estado del cliente:', error);
+        res.status(500).json({ success: false, error: 'Fallo al obtener datos iniciales.' });
     }
 };
 
 /**
- * [POST /api/savings/mirror] (TIEMPO REAL)
- * Simula una compra inmediata, valida el saldo y ejecuta el ahorro espejo.
+ * [POST /api/savings/mirror] (Lógica ML)
  */
 export const mirrorSavings = async (req: Request, res: Response): Promise<void> => {
-    const { purchaseAmount } = req.body;
-    const targetAccountId = getTargetAccountId(req); // Obtenemos el ID del cliente
+    // Recibe los datos completos para el modelo de ML
+    const { purchaseAmount, categoria, establecimiento } = req.body;
+    const targetAccountId = getTargetAccountId(req);
 
     if (typeof purchaseAmount !== 'number' || purchaseAmount <= 0) {
         res.status(400).json({ success: false, message: 'Monto de compra inválido.' });
@@ -95,11 +57,27 @@ export const mirrorSavings = async (req: Request, res: Response): Promise<void> 
     }
 
     try {
-        // El algoritmo obtiene el umbral de la DB internamente
         const result: SavingsProcessResult = await processMirrorSavings(
             targetAccountId,
-            purchaseAmount
+            purchaseAmount,
+            categoria,
+            establecimiento
         );
+
+        if (result.validation === 'SUCCESS') {
+            const amountToTransfer = parseFloat(result.transferredAmount as string);
+
+            // Actualiza los balances del cliente ÚNICO en MongoDB
+            await CustomerModel.findOneAndUpdate(
+                { nessieCustomerId: targetAccountId },
+                {
+                    $inc: {
+                        saldoNormal: -purchaseAmount,
+                        ahorroTotal: amountToTransfer
+                    }
+                }
+            );
+        }
 
         res.status(200).json({ success: true, data: result });
     } catch (error) {
@@ -107,3 +85,4 @@ export const mirrorSavings = async (req: Request, res: Response): Promise<void> 
         res.status(500).json({ success: false, error: errorMessage });
     }
 };
+// NOTA: Las rutas de setThreshold y processSavings fueron eliminadas.

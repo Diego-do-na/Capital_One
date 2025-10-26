@@ -38,6 +38,11 @@ export async function getRecentPurchases(accountId: string): Promise<Purchase[]>
 /**
  * [MOCK] Simula la creación exitosa de una transferencia.
  */
+// src/services/NessieService.ts (Función createTransfer MOCK - Versión a prueba de errores)
+
+/**
+ * [MOCK] Simula la creación exitosa de una transferencia.
+ */
 export async function createTransfer(
     fromAccountId: string,
     toAccountId: string,
@@ -45,9 +50,9 @@ export async function createTransfer(
 ): Promise<Transfer> {
     console.log(`MOCK: Transferencia simulada de $${amount.toFixed(2)} a ${toAccountId}.`);
 
-    // Simula una respuesta exitosa de la API
+    // ⬅️ Retornamos una promesa resuelta sin bloques try/catch
     const mockTransfer: Transfer = {
-        _id: MOCK_TRANSFER_ID,
+        _id: 'mock_transfer_9999', // Usar el ID fijo del mock
         type: 'transfer',
         transaction_date: new Date().toISOString(),
         amount: amount,
@@ -57,6 +62,7 @@ export async function createTransfer(
         payee_id: toAccountId,
     };
     return Promise.resolve(mockTransfer);
+    // Nota: El bloque try/catch de la versión real debe estar ausente o comentado.
 }
 
 /**

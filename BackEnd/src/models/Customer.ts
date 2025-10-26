@@ -1,18 +1,20 @@
 // src/models/Customer.ts
+
 import mongoose, { Schema, Document } from 'mongoose';
 
 // Interfaz para TypeScript
 export interface ICustomer extends Document {
-    nessieCustomerId: string; // El ID que Nessie usa para la cuenta
-    savingsThreshold: number; // El umbral de gasto hormiga ($5.00, etc.)
-    isActive: boolean;        // Si la función de ahorro está activa
+    nessieCustomerId: string;
+    saldoNormal: number;    // Saldo simulado
+    ahorroTotal: number;    // Monto total acumulado
 }
 
 // Esquema de Mongoose
 const CustomerSchema: Schema = new Schema({
     nessieCustomerId: { type: String, required: true, unique: true },
-    savingsThreshold: { type: Number, required: true, default: 5.00 },
     isActive: { type: Boolean, required: true, default: true },
+    saldoNormal: { type: Number, default: 10000.00 },
+    ahorroTotal: { type: Number, default: 0.00 },
 });
 
 // Exporta el modelo

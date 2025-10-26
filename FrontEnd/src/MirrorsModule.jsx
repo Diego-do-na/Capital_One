@@ -1,130 +1,163 @@
-import React, { useState } from "react";
+// frontend/src/MirrorsModule.jsx
+
+import React, { useState, useEffect } from "react";
 import { Header } from "./Header";
 import { SideMenu } from "./SideMenu";
 import { AddGastoModal } from "./AddGastoModal";
+import { HistoryScreen } from "./HistoryScreen";
+import { executeMirrorSavings, getInitialData, saveTransaction } from "./utils/api";
 
 export default function MirrorsModule() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isMirrorsActive, setIsMirrorsActive] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [ahorroTotal, setAhorroTotal] = useState(0);
-  const [saldoNormal, setSaldoNormal] = useState(10000);
-  const [gastoStatus, setGastoStatus] = useState("idle");
-  const [umbral, setUmbral] = useState(50);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isMirrorsActive, setIsMirrorsActive] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // --- ¡CAMBIO 1: Nuevo estado para bloquear el umbral! ---
-  const [isUmbralLocked, setIsUmbralLocked] = useState(false);
-  // --------------------------------------------------------
+    // ⬅️ Inicializados en null para indicar "cargando"
+    const [ahorroTotal, setAhorroTotal] = useState(null);
+    const [saldoNormal, setSaldoNormal] = useState(null);
 
-  const handleGuardarGasto = async (monto, categoria, establecimiento) => {
-    // La lógica de validación del umbral (+5) sigue aquí
-    const limiteSuperior = umbral + 5;
-    if (monto > limiteSuperior) {
-      alert(
-        `Gasto de $${monto} supera el umbral de $${umbral} (con tolerancia de +$5).\n\nEl límite máximo permitido es $${limiteSuperior}.\n\nEste gasto no será duplicado.`
-      );
-      setIsModalOpen(false);
-      return;
-    }
+    const [gastoStatus, setGastoStatus] = useState("idle");
+    const [currentPage, setCurrentPage] = useState('dashboard');
 
-    setGastoStatus("loading");
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // ⬅️ EFECTO PARA CARGAR DATOS PERSISTENTES DEL CLIENTE ÚNICO
+    useEffect(() => {
+        const loadInitialData = async () => {
+            try {
+                const data = await getInitialData();
+                setAhorroTotal(data.ahorroTotal);
+                setSaldoNormal(data.saldoNormal);
+            } catch (error) {
+                console.error("Fallo al cargar data inicial:", error);
+                // Fallback: Si la conexión falla, se usan valores por defecto para que la app no se rompa
+                setAhorroTotal(0.00);
+                setSaldoNormal(10000.00);
+            }
+        };
+        loadInitialData();
+    }, []);
 
-    // --- ¡LÓGICA DE DUPLICACIÓN YA ESTÁ CORRECTA! ---
-    // Esta lógica solo se ejecuta si el switch está ON
-    if (isMirrorsActive) {
-      setAhorroTotal((prevAhorro) => prevAhorro + monto);
-      setSaldoNormal((prevSaldo) => prevSaldo - monto);
-    }
-    // ------------------------------------------------
+    // Lógica de registro de gasto (handleGuardarGasto) sin cambios funcionales...
+    const handleGuardarGasto = async (monto, categoria, establecimiento) => {
+        if (!isMirrorsActive) {
+            alert("La función de ahorro está desactivada.");
+            setIsModalOpen(false);
+            return;
+        }
 
-    setGastoStatus("success");
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsModalOpen(false);
-    setGastoStatus("idle");
-  };
+        setGastoStatus("loading");
 
-  return (
-    <div className="dashboard-container">
-      {isModalOpen && (
-        <AddGastoModal
-          status={gastoStatus}
-          onClose={() => setIsModalOpen(false)}
-          onGastoGuardado={(monto, categoria, establecimiento) =>
-            handleGuardarGasto(monto, categoria, establecimiento)
-          }
-        />
-      )}
+        let successMessage = "Gasto registrado.";
+        let result = { validation: 'SKIP', transferredAmount: 0, message: 'Error' };
 
-      {isMenuOpen && (
-        <SideMenu
-          ahorro={ahorroTotal}
-          saldo={saldoNormal}
-          onClose={() => setIsMenuOpen(false)}
-        />
-      )}
+        try {
+            // 1. LLAMADA AL BACKEND con todos los datos (el backend llama al ML)
+            result = await executeMirrorSavings(monto, categoria, establecimiento);
 
-      <Header
-        onMenuClick={() => setIsMenuOpen(true)}
-        isMirrorsOn={isMirrorsActive}
-        onToggleChange={() => setIsMirrorsActive(!isMirrorsActive)}
-      />
+            const transferred = parseFloat(result.transferredAmount);
 
-      <div className="main-content-centered">
-        <h1>Función Mirrors</h1>
-        <p>Registra un gasto para duplicarlo en tu ahorro.</p>
+            if (result.validation === "SUCCESS") {
+                successMessage = result.message;
+                setGastoStatus("success");
 
-        {/* --- ¡CAMBIO 2: Campo de Umbral ahora se bloquea! --- */}
-        <div
-          className="form-group"
-          style={{ width: "80%", maxWidth: "300px", margin: "20px 0" }}
-        >
-          <label
-            htmlFor="umbral"
-            style={{ fontWeight: "600", marginBottom: "8px", display: "block" }}
-          >
-            {/* El texto de la etiqueta cambia si está bloqueado */}
-            {isUmbralLocked ? "Umbral Base:" : "Umbral Base:"}
-          </label>
-          <div className="monto-input-wrapper">
-            <span>$</span>
-            <input
-              type="number"
-              id="umbral"
-              value={umbral}
-              onChange={(e) => setUmbral(parseFloat(e.target.value) || 0)}
-              // Se bloquea cuando la variable de estado es true
-              disabled={isUmbralLocked}
-              // Al hacer clic fuera, se activa el bloqueo
-              onBlur={() => setIsUmbralLocked(true)}
-              style={{
-                padding: "12px",
-                width: "100%",
-                border: "none",
-                background: isUmbralLocked ? "#eee" : "#fff",
-              }}
+                // 2. RECARGAMOS LOS ESTADOS ACTUALIZADOS DE MONGODB
+                const updatedData = await getInitialData();
+                setAhorroTotal(updatedData.ahorroTotal);
+                setSaldoNormal(updatedData.saldoNormal);
+
+            } else {
+                successMessage = result.message;
+                setGastoStatus("error");
+            }
+
+            // 3. Guardar en el Historial de MongoDB
+            await saveTransaction(monto, categoria, establecimiento, result);
+
+        } catch (error) {
+            setGastoStatus("error");
+            successMessage = `Error de Conexión/Servidor: ${error.message}`;
+            alert(successMessage);
+        } finally {
+            setTimeout(() => {
+                setIsModalOpen(false);
+                setGastoStatus("idle");
+            }, 2000);
+        }
+    };
+
+    // =======================================================
+    // RENDERIZADO
+    // =======================================================
+
+    const renderPage = () => {
+        // ⬅️ Manejo de estado de carga inicial.
+        if (ahorroTotal === null || saldoNormal === null) {
+            return <div className="main-content-centered"><h2>Cargando datos persistentes...</h2><div className="loader"></div></div>;
+        }
+
+        switch (currentPage) {
+            case 'history':
+                return <HistoryScreen onClose={() => setCurrentPage('dashboard')} />;
+            case 'dashboard':
+            default:
+                return (
+                    <div className="main-content-centered">
+                        <h1>Tu Función Mirrors</h1>
+                        <p>Impulsada por Machine Learning. Cada gasto es analizado.</p>
+
+                        {/* Botón de Registrar Gasto */}
+                        <button
+                            className="boton-grande-principal"
+                            onClick={() => setIsModalOpen(true)}
+                            disabled={gastoStatus === "loading" || !isMirrorsActive}
+                            // ... (estilos) ...
+                        >
+                            {!isMirrorsActive ? "Función desactivada" : "+ Registrar Gasto"}
+                        </button>
+
+                        {/* ⬅️ Muestra el estado persistente */}
+                        <div style={{ marginTop: 30, textAlign: 'left', border: '1px solid #ddd', padding: '15px', borderRadius: '8px', width: "80%", maxWidth: "300px" }}>
+                            <h4>Estado de Cuentas (Persistente)</h4>
+                            <p><strong>Saldo Normal:</strong> ${saldoNormal}</p>
+                            <p><strong>Ahorro Total:</strong> ${ahorroTotal}</p>
+                        </div>
+                    </div>
+                );
+        }
+    };
+
+
+    return (
+        <div className="dashboard-container">
+            {isModalOpen && (
+                <AddGastoModal
+                    status={gastoStatus}
+                    onClose={() => setIsModalOpen(false)}
+                    onGastoGuardado={handleGuardarGasto}
+                />
+            )}
+
+            {/* Menú Lateral */}
+            {isMenuOpen && (
+                <SideMenu
+                    ahorro={ahorroTotal}
+                    saldo={saldoNormal}
+                    onClose={() => setIsMenuOpen(false)}
+                    onNavigateHistory={() => {
+                        setIsMenuOpen(false);
+                        setCurrentPage('history');
+                    }}
+                />
+            )}
+
+            {/* Encabezado */}
+            <Header
+                onMenuClick={() => setIsMenuOpen(true)}
+                isMirrorsOn={isMirrorsActive}
+                onToggleChange={() => setIsMirrorsActive(!isMirrorsActive)}
             />
-          </div>
-        </div>
-        {/* ---------------------------------------------------- */}
 
-        {/* --- ¡CAMBIO 3: Botón principal se desactiva! --- */}
-        <button
-          className="boton-grande-principal"
-          onClick={() => setIsModalOpen(true)}
-          // Se deshabilita si está cargando O si el switch está apagado
-          disabled={gastoStatus === "loading" || !isMirrorsActive}
-          // Opcional: Cambiar el estilo si está desactivado
-          style={{
-            backgroundColor: !isMirrorsActive ? "#aaa" : "#007bff",
-            cursor: !isMirrorsActive ? "not-allowed" : "pointer",
-          }}
-        >
-          {/* Mostramos un texto diferente si está apagado */}
-          {!isMirrorsActive ? "Función desactivada" : "+ Registrar Gasto"}
-        </button>
-        {/* ------------------------------------------------- */}
-      </div>
-    </div>
-  );
+            {renderPage()}
+
+        </div>
+    );
 }
