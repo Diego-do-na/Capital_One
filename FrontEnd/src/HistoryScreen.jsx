@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { getHistory } from "./utils/api";
 
-// Helper para traducir el estado de validación a texto y color (de styles.css)
 const statusStyles = {
-    SUCCESS: { text: "Ahorro Ejecutado", color: "#28a745" }, // Verde
-    FAILED_MIRROR: { text: "Compra OK, Ahorro Falló", color: "#ffc107" }, // Amarillo
-    SKIP: { text: "Gasto Normal", color: "#6c757d" }, // Gris
-    FAILED_BALANCE: { text: "Transacción Rechazada", color: "#dc3545" }, // Rojo
+    SUCCESS: { text: "Ahorro Ejecutado", color: "#28a745" },
+    FAILED_MIRROR: { text: "Compra OK, Ahorro Falló", color: "#ffc107" },
+    SKIP: { text: "Gasto Normal", color: "#6c757d" },
+    FAILED_BALANCE: { text: "Transacción Rechazada", color: "#dc3545" }, 
 };
 
 export function HistoryScreen({ onClose }) {
-    const [history, setHistory] = useState(null); // Usamos null para 'cargando'
+    const [history, setHistory] = useState(null); 
     const [loading, setLoading] = useState(true);
 
-    // Efecto para cargar el historial al montar el componente
     useEffect(() => {
         const loadHistory = async () => {
             try {
@@ -21,7 +19,7 @@ export function HistoryScreen({ onClose }) {
                 setHistory(data);
             } catch (error) {
                 console.error("Error al cargar el historial:", error);
-                setHistory([]); // Establecer array vacío en caso de fallo
+                setHistory([]); 
             } finally {
                 setLoading(false);
             }
@@ -79,9 +77,7 @@ export function HistoryScreen({ onClose }) {
                     </thead>
                     <tbody>
                     {history.map((tx) => {
-                        // Determinamos el estado final basado en la validación guardada
-                        const statusKey = tx.validation || "SKIP"; // Usamos el validation del backend
-
+                        const statusKey = tx.validation || "SKIP";
                         return (
                             <tr key={tx._id}>
                                 <td>{new Date(tx.fecha).toLocaleDateString()}</td>
