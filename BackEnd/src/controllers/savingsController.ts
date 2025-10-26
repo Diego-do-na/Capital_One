@@ -1,23 +1,13 @@
-// src/controllers/savingsController.ts
-
 import type { Request, Response } from 'express';
-// Importamos ambos algoritmos (valores ejecutables)
 import { processHormigaSavings, processMirrorSavings } from '../services/SavingsAlgorithm.js';
 import type { SavingsProcessResult } from '../types/nessie.js';
-
-// Importamos el modelo de Mongoose (valor ejecutable) y la interfaz (solo tipo)
 import CustomerModel from '../models/Customer.js';
 import type { ICustomer } from '../models/Customer.js';
 
 // MOCK: ID de Cuenta simulada para el MVP si no se envía en el cuerpo de la petición
-const MOCK_CUSTOMER_ACCOUNT_ID = '66778899aabbccddeeff0011';
+const MOCK_CUSTOMER_ACCOUNT_ID = 'genarinh0';
 
-/**
- * Función auxiliar para obtener el ID de cuenta de la petición.
- * En un entorno real, esto vendría de un token de autenticación.
- */
 const getTargetAccountId = (req: Request): string => {
-    // Intenta obtener el ID del cuerpo, si no usa el MOCK
     return req.body.accountId || MOCK_CUSTOMER_ACCOUNT_ID;
 };
 
@@ -69,8 +59,7 @@ export const setSavingsThreshold = async (req: Request, res: Response): Promise<
         if (updatedCustomer) {
             res.status(200).json({
                 success: true,
-                message: 'Umbral de ahorro configurado exitosamente.',
-                currentThreshold: updatedCustomer.savingsThreshold.toFixed(2)
+                message: 'Umbral de ahorro configurado exitosamente.'
             });
         } else {
             // Esto solo ocurriría en un caso de error extremo de DB
@@ -89,23 +78,52 @@ export const setSavingsThreshold = async (req: Request, res: Response): Promise<
  */
 export const mirrorSavings = async (req: Request, res: Response): Promise<void> => {
     console.log('MIRROR body:', req.body);
-    const { purchaseAmount } = req.body;
-    const targetAccountId = getTargetAccountId(req); // Obtenemos el ID del cliente
+    const { purchaseAmount, category, establishment } = req.body;
+    const targetAccountId = getTargetAccountId(req);
 
     if (typeof purchaseAmount !== 'number' || purchaseAmount <= 0) {
-        res.status(400).json({ success: false, message: 'Monto de compra inválido.' });
+        res.status(400).json({ success: false, message: 'Invalid Amount.' });
         return;
     }
 
     try {
-        // El algoritmo obtiene el umbral de la DB internamente
-        const result: SavingsProcessResult = await processMirrorSavings(
-            targetAccountId,
-            purchaseAmount
-        );
+        // Buscar o crear el cliente
+        let customer = await CustomerModel.findOne({ CustomerId: targetAccountId });
+        
+        if (!customer) {
+            customer = new CustomerModel({
+                customerId: targetAccountId,
+                savings: 0
+            });
+        }
 
-        res.status(200).json({ success: true, data: result });
+        const savingsAmount = purchaseAmount;
+
+        // Actualizar totales
+        customer.savings = (customer.savings || 0) + savingsAmount;
+        
+        // Agregar la transacción
+        customer.transaction.push({
+            purchaseAmount,
+            savingsAmount,
+            establishment,
+            category
+        });
+
+        // Guardar cambios
+        await customer.save();
+
+        res.status(200).json({ 
+            success: true, 
+            data: {
+                savedAmount: savingsAmount,
+                totalSavings: customer.savings,
+                establishment: establishment,
+                category: category
+            }
+        });
     } catch (error) {
+        console.error('Error en mirror savings:', error);
         const errorMessage = error instanceof Error ? error.message : 'Error interno desconocido en Mirror.';
         res.status(500).json({ success: false, error: errorMessage });
     }

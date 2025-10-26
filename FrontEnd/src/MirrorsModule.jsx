@@ -33,32 +33,28 @@ export default function MirrorsModule() {
   }, []);
 
   const handleGuardarGasto = async (monto, categoria, establecimiento) => {
-    // La lógica de validación del umbral (+5) sigue aquí
-    const limiteSuperior = umbral + 5;
-    if (monto > limiteSuperior) {
-      alert(
-        `Gasto de $${monto} supera el umbral de $${umbral} (con tolerancia de +$5).\n\nEl límite máximo permitido es $${limiteSuperior}.\n\nEste gasto no será duplicado.`
-      );
-      setIsModalOpen(false);
-      return;
+    try {
+        setGastoStatus('loading');
+        const response = await api.post('/api/savings/mirror', {
+            purchaseAmount: Number(monto),
+            establishment: establecimiento,
+            category: categoria,
+            customerId: '66778899aabbccddeeff0011' // usar el mock ID por ahora
+        });
+
+        if (response.data.success) {
+            // Actualizar el estado con los nuevos valores
+            setAhorroTotal(prevTotal => prevTotal + response.data.data.savedAmount);
+            setGastoStatus('success');
+            setIsModalOpen(false);
+        } else {
+            setGastoStatus('error');
+        }
+    } catch (error) {
+        console.error('Error al procesar el gasto:', error);
+        setGastoStatus('error');
     }
-
-    setGastoStatus("loading");
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    // --- ¡LÓGICA DE DUPLICACIÓN YA ESTÁ CORRECTA! ---
-    // Esta lógica solo se ejecuta si el switch está ON
-    if (isMirrorsActive) {
-      setAhorroTotal((prevAhorro) => prevAhorro + monto);
-      setSaldoNormal((prevSaldo) => prevSaldo - monto);
-    }
-    // ------------------------------------------------
-
-    setGastoStatus("success");
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsModalOpen(false);
-    setGastoStatus("idle");
-  };
+};
 
   return (
     <div className="dashboard-container">
