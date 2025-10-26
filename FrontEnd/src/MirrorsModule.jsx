@@ -16,10 +16,10 @@ export default function MirrorsModule() {
     const [ahorroTotal, setAhorroTotal] = useState(null);
     const [saldoNormal, setSaldoNormal] = useState(null);
 
+    // gastoStatus: 'idle', 'loading', 'success', 'error', 'normal', 'parcial' ⬅️ Incluye el estado de fallo
     const [gastoStatus, setGastoStatus] = useState("idle");
     const [currentPage, setCurrentPage] = useState('dashboard');
 
-    // ⬅️ EFECTO PARA CARGAR DATOS PERSISTENTES DEL CLIENTE ÚNICO
     useEffect(() => {
         const loadInitialData = async () => {
             try {
@@ -28,7 +28,6 @@ export default function MirrorsModule() {
                 setSaldoNormal(data.saldoNormal);
             } catch (error) {
                 console.error("Fallo al cargar data inicial:", error);
-                // Fallback: Si la conexión falla, se usan valores por defecto para que la app no se rompa
                 setAhorroTotal(0.00);
                 setSaldoNormal(10000.00);
             }
@@ -53,21 +52,28 @@ export default function MirrorsModule() {
         let result = { validation: 'SKIP', transferredAmount: 0, message: 'Error' };
 
         try {
-            // 1. LLAMADA AL BACKEND con todos los datos (el backend llama al ML)
+            // 1. LLAMADA AL BACKEND
             result = await executeMirrorSavings(monto, categoria, establecimiento);
 
-            const transferred = parseFloat(result.transferredAmount);
-
+            // 2. Determinación del estado final del Modal
             if (result.validation === "SUCCESS") {
                 successMessage = result.message;
                 setGastoStatus("success");
 
-                // 2. RECARGAMOS LOS ESTADOS ACTUALIZADOS DE MONGODB
+                // Recargamos los estados actualizados de MongoDB
                 const updatedData = await getInitialData();
                 setAhorroTotal(updatedData.ahorroTotal);
                 setSaldoNormal(updatedData.saldoNormal);
 
-            } else {
+            } else if (result.validation === "SKIP") {
+                successMessage = result.message;
+                setGastoStatus("normal"); // Gasto Normal (Descuento simple)
+
+            } else if (result.validation === "FAILED_MIRROR") {
+                successMessage = result.message;
+                setGastoStatus("parcial"); // ⬅️ Nuevo estado visual para saldo insuficiente
+
+            } else { // FAILED_BALANCE (Error de saldo total) o error inesperado
                 successMessage = result.message;
                 setGastoStatus("error");
             }
@@ -78,8 +84,9 @@ export default function MirrorsModule() {
         } catch (error) {
             setGastoStatus("error");
             successMessage = `Error de Conexión/Servidor: ${error.message}`;
-            alert(successMessage);
+            alert(successMessage); // Mantenemos esta alerta SÓLO para fallos de red/servidor
         } finally {
+            // Eliminamos el alert duplicado y sólo usamos el delay para cerrar el modal
             setTimeout(() => {
                 setIsModalOpen(false);
                 setGastoStatus("idle");
@@ -92,7 +99,6 @@ export default function MirrorsModule() {
     // =======================================================
 
     const renderPage = () => {
-        // ⬅️ Manejo de estado de carga inicial.
         if (ahorroTotal === null || saldoNormal === null) {
             return <div className="main-content-centered"><h2>Cargando datos persistentes...</h2><div className="loader"></div></div>;
         }
@@ -107,17 +113,14 @@ export default function MirrorsModule() {
                         <h1>Tu Función Mirrors</h1>
                         <p>Impulsada por Machine Learning. Cada gasto es analizado.</p>
 
-                        {/* Botón de Registrar Gasto (NO HAY CAMPO UMBRAL) */}
                         <button
                             className="boton-grande-principal"
                             onClick={() => setIsModalOpen(true)}
                             disabled={gastoStatus === "loading" || !isMirrorsActive}
-                            // ... (estilos) ...
                         >
                             {!isMirrorsActive ? "Función desactivada" : "+ Registrar Gasto"}
                         </button>
 
-                        {/* Muestra el estado persistente */}
                         <div style={{ marginTop: 30, textAlign: 'left', border: '1px solid #ddd', padding: '15px', borderRadius: '8px', width: "80%", maxWidth: "300px" }}>
                             <h4>Estado de Cuentas (Persistente)</h4>
                             <p><strong>Saldo Normal:</strong> ${saldoNormal.toFixed(2)}</p>
@@ -139,7 +142,6 @@ export default function MirrorsModule() {
                 />
             )}
 
-            {/* Menú Lateral */}
             {isMenuOpen && (
                 <SideMenu
                     ahorro={ahorroTotal}
@@ -152,7 +154,6 @@ export default function MirrorsModule() {
                 />
             )}
 
-            {/* Encabezado */}
             <Header
                 onMenuClick={() => setIsMenuOpen(true)}
                 isMirrorsOn={isMirrorsActive}

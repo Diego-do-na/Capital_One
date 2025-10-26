@@ -5,22 +5,19 @@ import { createTransfer } from './NessieService.js';
 import type { SavingsProcessResult } from '../types/nessie.js';
 import CustomerModel, { type ICustomer } from '../models/Customer.js';
 
-// URL de tu servicio de Machine Learning (Python/FastAPI)
 const ML_SERVICE_URL = 'http://localhost:8000/predict';
 const MOCK_INVESTMENT_ACCOUNT_ID = '68fd2f9b9683f20dd51a476b';
-const DEFAULT_THRESHOLD = 5.00; // Usado solo como fallback de contingencia
+const DEFAULT_THRESHOLD = 5.00;
 
-/**
- * FUNCIÓN ML REAL: Hace una petición HTTP al servidor de Python/FastAPI.
- * @returns true (1) si es gasto hormiga, false (0) si no lo es.
- */
+// ... (Función classifyGastoML - Sin cambios, ya que llama a tu API Python) ...
+
 async function classifyGastoML(purchaseAmount: number, categoria: string, establecimiento: string): Promise<boolean> {
 
     console.log(`ML CLIENT: Enviando datos a ${ML_SERVICE_URL}...`);
 
     try {
         const response = await axios.post(ML_SERVICE_URL, {
-            precio: purchaseAmount, // Nombre de la variable que espera Python
+            precio: purchaseAmount,
             categoria: categoria,
             tienda: establecimiento
         });
@@ -32,10 +29,8 @@ async function classifyGastoML(purchaseAmount: number, categoria: string, establ
         return isHormiga;
 
     } catch (error) {
-        // ❌ FALLBACK DE CONTINGENCIA: Si el servidor Python no responde (404, 500, etc.)
         console.error("❌ FALLO DE CONEXIÓN CON SERVICIO ML (PYTHON). Usando lógica de contingencia.");
 
-        // Usamos una lógica simple de fallback (monto <= $5.00)
         if (purchaseAmount > 0 && purchaseAmount <= DEFAULT_THRESHOLD) {
             console.warn("ML FALLBACK: Usando lógica simple (<= $5.00) como contingencia.");
             return true;
@@ -44,14 +39,12 @@ async function classifyGastoML(purchaseAmount: number, categoria: string, establ
     }
 }
 
-/**
- * Función auxiliar para obtener la configuración del cliente (Persistencia en DB).
- */
+// ... (Función getCustomerConfig) ...
+
 async function getCustomerConfig(accountId: string): Promise<ICustomer> {
     let config = await CustomerModel.findOne({ nessieCustomerId: accountId });
 
     if (!config) {
-        // Crea el documento si el cliente único no existe
         config = new CustomerModel({
             nessieCustomerId: accountId,
             saldoNormal: 10000.00,
@@ -63,7 +56,6 @@ async function getCustomerConfig(accountId: string): Promise<ICustomer> {
     return config as ICustomer;
 }
 
-// ... (processHormigaSavings omitido) ...
 
 /**
  * ALGORITMO TIEMPO REAL (ESPEJO) - Impulsado por ML
@@ -80,11 +72,12 @@ export async function processMirrorSavings(
     // 1. CLASIFICACIÓN DE MACHINE LEARNING
     const isHormigaML = await classifyGastoML(amountToMirror, categoria, establecimiento);
 
+    // ⬅️ LÓGICA DE GASTO NORMAL (validation: SKIP)
     if (!isHormigaML) {
         return {
-            message: `Gasto de $${amountToMirror.toFixed(2)} clasificado como NO hormiga por el modelo ML.`,
+            message: `Gasto de $${amountToMirror.toFixed(2)} clasificado como NO hormiga por el modelo ML (Gasto Normal).`,
             transferredAmount: 0,
-            validation: 'SKIP',
+            validation: 'SKIP', // Indica al controlador que solo debe descontar el gasto base
         } as SavingsProcessResult;
     }
 
@@ -101,7 +94,7 @@ export async function processMirrorSavings(
         } as SavingsProcessResult;
     }
 
-    // 3. Ejecutar la Transferencia Espejo (MOCK)
+    // 3. Ejecutar la Transferencia Espejo (MOCK) - Solo si pasa la validación
     try {
         const transferResult = await createTransfer(
             customerAccountId,
@@ -110,7 +103,7 @@ export async function processMirrorSavings(
         );
 
         return {
-            message: `Ahorro espejo aprobado por ML. Transferencia de $${amountToMirror.toFixed(2)} ejecutada.`,
+            message: `Ahorro espejo aprobado por ML. Transferencia de $${amountToMirror.toFixed(2)} ejecutada. (Gasto Hormiga)`,
             transferredAmount: amountToMirror.toFixed(2),
             validation: 'SUCCESS',
             transferId: transferResult._id,

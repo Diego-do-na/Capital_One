@@ -1,56 +1,64 @@
-// src/controllers/transactionController.ts
-
 import type { Request, Response } from 'express';
 import TransactionModel from '../models/Transaction.js';
 
 const MOCK_CUSTOMER_ACCOUNT_ID = 'TEST_HACKATHON_USER';
+
 const getTargetAccountId = (req: Request): string => {
     return req.params.accountId || req.body.accountId || MOCK_CUSTOMER_ACCOUNT_ID;
 };
 
 /**
- * [POST /api/transactions]
- * Agrega una nueva transacción al historial.
+ * [POST /api/transactions] ⬅️ Guarda la transacción en MongoDB.
+ * Llamada desde frontend/src/utils/api.js -> saveTransaction
  */
-export const addTransaction = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const { monto, categoria, establecimiento, isHormiga, transferAmount, message } = req.body;
-        const nessieCustomerId = getTargetAccountId(req);
+export const createTransaction = async (req: Request, res: Response): Promise<void> => {
+    const {
+        monto, categoria, establecimiento, accountId,
+        isHormiga, transferAmount, validation, message
+    } = req.body;
 
-        const newTransaction = new TransactionModel({
+    // Usamos el ID del cliente mock
+    const nessieCustomerId = getTargetAccountId(req);
+
+    try {
+        const newTransaction = await TransactionModel.create({
             nessieCustomerId,
             monto,
             categoria,
             establecimiento,
-            isHormiga: isHormiga || false,
-            transferAmount: transferAmount || 0,
-            message: message || 'Gasto registrado',
+            isHormiga,
+            transferAmount,
+            validation,
+            message,
+            // Fecha se usa el default: Date.now
         });
 
-        await newTransaction.save();
-
-        res.status(201).json({ success: true, message: 'Transacción guardada.', transaction: newTransaction });
+        console.log(`✅ Transacción guardada en DB: ${newTransaction._id}`);
+        res.status(201).json({ success: true, transaction: newTransaction });
     } catch (error) {
-        console.error('Error al guardar la transacción:', error);
-        res.status(500).json({ success: false, error: 'Fallo al guardar la transacción en la DB.' });
+        const errorMessage = error instanceof Error ? error.message : 'Error al guardar la transacción.';
+        console.error("Error al crear transacción:", errorMessage);
+        res.status(500).json({ success: false, error: errorMessage });
     }
 };
 
 /**
- * [GET /api/transactions/:accountId]
- * Obtiene el historial de transacciones.
+ * [GET /api/transactions/:accountId] ⬅️ Obtiene el historial.
+ * Llamada desde frontend/src/utils/api.js -> getHistory
  */
-export const getTransactionsHistory = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const nessieCustomerId = getTargetAccountId(req);
+export const getTransactionsByAccount = async (req: Request, res: Response): Promise<void> => {
+    const nessieCustomerId = getTargetAccountId(req);
 
+    try {
+        // Buscamos todas las transacciones del cliente, ordenadas por fecha descendente
         const history = await TransactionModel.find({ nessieCustomerId })
-            .sort({ fecha: -1 })
-            .limit(50);
+            .sort({ fecha: -1 }); // -1 para más reciente primero
 
         res.status(200).json({ success: true, history });
+
     } catch (error) {
-        console.error('Error al obtener el historial:', error);
-        res.status(500).json({ success: false, error: 'Fallo al obtener el historial de la DB.' });
+        const errorMessage = error instanceof Error ? error.message : 'Error al obtener historial.';
+        console.error("Error al obtener historial:", errorMessage);
+        res.status(500).json({ success: false, error: errorMessage });
     }
 };

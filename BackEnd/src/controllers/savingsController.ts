@@ -41,7 +41,7 @@ export const getCustomerStatus = async (req: Request, res: Response): Promise<vo
 };
 
 /**
- * [POST /api/savings/mirror] (Lógica ML)
+ * [POST /api/savings/mirror] (Lógica ML con Descuento Corregido)
  */
 export const mirrorSavings = async (req: Request, res: Response): Promise<void> => {
     const { purchaseAmount, categoria, establecimiento } = req.body;
@@ -60,20 +60,28 @@ export const mirrorSavings = async (req: Request, res: Response): Promise<void> 
             establecimiento
         );
 
-        if (result.validation === 'SUCCESS') {
-            const amountToTransfer = parseFloat(result.transferredAmount as string);
+        let amountToTransfer = 0;
+        let amountToDiscount = purchaseAmount; // ⬅️ Siempre descontamos el gasto base
 
-            // Actualiza los balances del cliente ÚNICO en MongoDB
-            await CustomerModel.findOneAndUpdate(
-                { nessieCustomerId: targetAccountId },
-                {
-                    $inc: {
-                        saldoNormal: -purchaseAmount,
-                        ahorroTotal: amountToTransfer
-                    }
-                }
-            );
+        // Solo si la validación es SUCCESS, hay transferencia de ahorro
+        if (result.validation === 'SUCCESS') {
+            amountToTransfer = parseFloat(result.transferredAmount as string);
+            amountToDiscount += amountToTransfer; // ⬅️ Sumamos el ahorro para el Costo Doble
         }
+
+        // ⬅️ LÓGICA DE ACTUALIZACIÓN DE MONGODB
+        // Se ejecuta en TODOS los casos (SUCCESS, SKIP, FAILED_BALANCE)
+        await CustomerModel.findOneAndUpdate(
+            { nessieCustomerId: targetAccountId },
+            {
+                $inc: {
+                    // Descontamos el Gasto Base O el Costo Doble (purchaseAmount + amountToTransfer)
+                    saldoNormal: -amountToDiscount,
+                    // Sumamos 0 (si es SKIP) o el monto del ahorro (si es SUCCESS)
+                    ahorroTotal: amountToTransfer
+                }
+            }
+        );
 
         res.status(200).json({ success: true, data: result });
     } catch (error) {

@@ -44,6 +44,15 @@ export function AddGastoModal({ status, onClose, onGastoGuardado }) {
             <p style={{ marginTop: "15px" }}>¡Savings Mirrored!</p>
           </div>
         );
+        case "normal":
+            return (
+                <div className="animation-container">
+                    <div className="success-animation">
+                        <div className="checkmark"></div>
+                    </div>
+                    <p style={{ marginTop: "15px" }}>¡Normal Expense!</p>
+                </div>
+            );
       case "error":
         return (
           <div className="animation-container">
